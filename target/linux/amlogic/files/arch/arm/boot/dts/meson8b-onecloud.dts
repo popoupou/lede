@@ -21,13 +21,45 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x40000000 0x40000000>;
+		//2g
+		reg = <0x40000000 0x80000000>;
 	};
 
 	emmc_pwrseq: emmc-pwrseq {
 		compatible = "mmc-pwrseq-emmc";
 		reset-gpios = <&gpio BOOT_9 GPIO_ACTIVE_LOW>;
 	};
+
+	// ========== 新增：WiFi/BT 核心配置 ==========
+	bt-dev {
+		compatible = "amlogic,bt-dev";
+		dev_name = "bt-dev";
+		status = "okay";
+		// 适配 GPIO 格式：原 GPIOX_20 → 标准绑定格式
+		gpio_reset = <&gpio GPIOX_20 GPIO_ACTIVE_HIGH>;
+	};
+
+	wifi {
+		compatible = "amlogic,aml_broadcm_wifi";
+		dev_name = "aml_broadcm_wifi";
+		status = "okay";
+		// 适配 GPIO 格式：原 GPIOX_21 → 标准绑定格式
+		interrupt_pin = <&gpio GPIOX_21 GPIO_ACTIVE_HIGH>;
+		irq_num = <4>;
+		irq_trigger_type = <GPIO_IRQ_TYPE_LEVEL_HIGH>; // 适配标准 IRQ 定义
+		power_on_pin = <&gpio_ao GPIOAO_6 GPIO_ACTIVE_HIGH>; // 原 GPIOAO_6
+		power_on_pin2 = <&gpio GPIOX_11 GPIO_ACTIVE_HIGH>; // 原 GPIOX_11
+		clock_32k_pin = <&gpio GPIOX_10 GPIO_ACTIVE_HIGH>; // 原 GPIOX_10
+	};
+
+	wifi_power {
+		compatible = "amlogic,wifi_power";
+		dev_name = "wifi_power";
+		status = "okay";
+		power_gpio = <&gpio_ao GPIOAO_6 GPIO_ACTIVE_HIGH>; // 原 GPIOAO_6
+		power_gpio2 = <&gpio GPIOX_11 GPIO_ACTIVE_HIGH>; // 原 GPIOX_11
+	};
+	// ========== WiFi/BT 配置结束 ==========
 
 	gpio-keys {
 		// compatible = "gpio-keys-polled";
@@ -336,6 +368,21 @@
 		vmmc-supply = <&vcc_3v3>;
 		// vqmmc-supply = <&vcc_3v3>;
 	};
+
+	// ========== 新增：SDIO 适配 WiFi 配置 ==========
+	sdio_wifi: slot@0 {
+		compatible = "mmc-slot";
+		reg = <0>; // 原 port = <0>
+		status = "okay";
+		pinname = "sdio";
+		ocr_avail = <0x200000>; // 3.3V 电压
+		caps = "MMC_CAP_4_BIT_DATA","MMC_CAP_SDIO_IRQ","MMC_CAP_MMC_HIGHSPEED","MMC_CAP_SD_HIGHSPEED", "MMC_CAP_NONREMOVABLE";
+		f_min = <300000>;
+		f_max = <50000000>;
+		max_req_size = <0x20000>; // 128KB
+		card_type = <3>; // 3: sdio device (WiFi)
+	};
+	// ========== SDIO WiFi 配置结束 ==========
 };
 
 &ethmac {
