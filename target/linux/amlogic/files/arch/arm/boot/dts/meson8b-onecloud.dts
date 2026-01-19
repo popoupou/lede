@@ -4,6 +4,7 @@
 #include "meson8b.dtsi"
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/interrupt-controller/irq.h> // 新增：引入标准IRQ类型定义
 
 / {
 	model = "Thunder OneCloud";
@@ -21,7 +22,6 @@
 
 	memory {
 		device_type = "memory";
-		//2g
 		reg = <0x40000000 0x80000000>;
 	};
 
@@ -30,53 +30,50 @@
 		reset-gpios = <&gpio BOOT_9 GPIO_ACTIVE_LOW>;
 	};
 
-	// ========== 新增：WiFi/BT 核心配置 ==========
+	// ========== 修复：WiFi/BT 核心配置（替换非标准GPIO命名和IRQ类型） ==========
 	bt-dev {
 		compatible = "amlogic,bt-dev";
 		dev_name = "bt-dev";
 		status = "okay";
-		// 适配 GPIO 格式：原 GPIOX_20 → 标准绑定格式
-		gpio_reset = <&gpio GPIOX_20 GPIO_ACTIVE_HIGH>;
+		// 修改1：GPIOX_20 → 标准数字索引16（对应gpio-line-names里的GPIOX_20是第16位）
+		gpio_reset = <&gpio 16 GPIO_ACTIVE_HIGH>;
 	};
 
 	wifi {
 		compatible = "amlogic,aml_broadcm_wifi";
 		dev_name = "aml_broadcm_wifi";
 		status = "okay";
-		// 适配 GPIO 格式：原 GPIOX_21 → 标准绑定格式
-		interrupt_pin = <&gpio GPIOX_21 GPIO_ACTIVE_HIGH>;
+		// 修改2：GPIOX_21 → 标准数字索引17（对应gpio-line-names里的GPIOX_21是第17位）
+		interrupt_pin = <&gpio 17 GPIO_ACTIVE_HIGH>;
 		irq_num = <4>;
-		irq_trigger_type = <GPIO_IRQ_TYPE_LEVEL_HIGH>; // 适配标准 IRQ 定义
-		power_on_pin = <&gpio_ao GPIOAO_6 GPIO_ACTIVE_HIGH>; // 原 GPIOAO_6
-		power_on_pin2 = <&gpio GPIOX_11 GPIO_ACTIVE_HIGH>; // 原 GPIOX_11
-		clock_32k_pin = <&gpio GPIOX_10 GPIO_ACTIVE_HIGH>; // 原 GPIOX_10
+		// 修改3：GPIO_IRQ_TYPE_LEVEL_HIGH → 标准IRQ_TYPE_LEVEL_HIGH（需引入irq.h）
+		irq_trigger_type = <IRQ_TYPE_LEVEL_HIGH>;
+		// 修改4：GPIOAO_6 → 标准数字索引6（gpio_ao的第6位）
+		power_on_pin = <&gpio_ao 6 GPIO_ACTIVE_HIGH>;
+		// 修改5：GPIOX_11 → 标准数字索引11（gpio的第11位）
+		power_on_pin2 = <&gpio 11 GPIO_ACTIVE_HIGH>;
+		// 修改6：GPIOX_10 → 标准数字索引10（gpio的第10位）
+		clock_32k_pin = <&gpio 10 GPIO_ACTIVE_HIGH>;
 	};
 
 	wifi_power {
 		compatible = "amlogic,wifi_power";
 		dev_name = "wifi_power";
 		status = "okay";
-		power_gpio = <&gpio_ao GPIOAO_6 GPIO_ACTIVE_HIGH>; // 原 GPIOAO_6
-		power_gpio2 = <&gpio GPIOX_11 GPIO_ACTIVE_HIGH>; // 原 GPIOX_11
+		power_gpio = <&gpio_ao 6 GPIO_ACTIVE_HIGH>;
+		power_gpio2 = <&gpio 11 GPIO_ACTIVE_HIGH>;
 	};
-	// ========== WiFi/BT 配置结束 ==========
+	// ========== WiFi/BT 配置修复结束 ==========
 
 	gpio-keys {
-		// compatible = "gpio-keys-polled";
-		// poll-interval = <100>;
-
 		compatible = "gpio-keys";
-
 		autorepeat;
 
 		reset-button {
 			label = "reset";
 			linux,code = <BTN_0>;
-
-			// gpios = <&gpio_ao GPIOAO_5 GPIO_ACTIVE_LOW>;
-
 			interrupt-parent = <&gpio_intc>;
-			interrupts = <5 IRQ_TYPE_LEVEL_LOW>; // GPIOAO 5
+			interrupts = <5 IRQ_TYPE_LEVEL_LOW>;
 		};
 	};
 
@@ -85,23 +82,22 @@
 
 		led_status_red: status-red {
 			label = "red:status";
-			gpios = <&gpio_ao GPIOAO_2 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio_ao 2 GPIO_ACTIVE_HIGH>;
 		};
 
 		led_status_green: status-green {
 			label = "green:status";
-			gpios = <&gpio_ao GPIOAO_3 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio_ao 3 GPIO_ACTIVE_HIGH>;
 		};
 
 		led_status_blue: status-blue {
 			label = "blue:status";
-			gpios = <&gpio_ao GPIOAO_4 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio_ao 4 GPIO_ACTIVE_HIGH>;
 		};
 	};
 
 	p12v: regulator-p12v {
 		compatible = "regulator-fixed";
-
 		regulator-name = "P12V";
 		regulator-min-microvolt = <12000000>;
 		regulator-max-microvolt = <12000000>;
@@ -109,82 +105,52 @@
 
 	vcc_5v: regulator-vcc-5v {
 		compatible = "regulator-fixed";
-
 		regulator-name = "VCC5V";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-
 		vin-supply = <&p12v>;
-
 		regulator-boot-on;
 		regulator-always-on;
 	};
 
 	vcc_3v3: regulator-vcc-3v3 {
 		compatible = "regulator-fixed";
-
 		regulator-name = "VCC3V3";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
-
 		vin-supply = <&p12v>;
-
 		regulator-boot-on;
 		regulator-always-on;
 	};
 
 	vcc_1v8: regulator-vcc-1v8 {
 		compatible = "regulator-fixed";
-
 		regulator-name = "VCC1V8";
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <1800000>;
-
 		vin-supply = <&p12v>;
-
 		regulator-boot-on;
 		regulator-always-on;
 	};
 
 	vcc_ddr: regulator-vcc-ddr {
 		compatible = "regulator-fixed";
-
 		regulator-name = "VCC_DDR";
 		regulator-min-microvolt = <1500000>;
 		regulator-max-microvolt = <1500000>;
-
 		vin-supply = <&vcc_3v3>;
-
 		regulator-boot-on;
 		regulator-always-on;
 	};
 
 	vcc_core: regulator-vcc-core {
 		compatible = "pwm-regulator";
-
 		regulator-name = "VCC_CORE";
-
-		//   ---------------------------------------------------
-		//   |           The actual mapping in phyical           |
-		//   ----------------------------------------------
-		//   |      |  100%  |   60%  |   30%  |   10%  |   0%   |
-		//   ----------------------------------------------
-		//   | V1.0 |  677mV |  857mV |  992mV | 1082mV | 1127mV |
-		//   | V1.3 | 1116mV | 1121mV | 1125mV | 1128mV | 1129mV |
-		//   ----------------------------------------------
-		//
-		// According to meson8b.dtsi, the CPU should be able to
-		// run at 504MHz with 870mV. But this regulator supplies
-		// not only CPU but also GPU. And according to the users'
-		// tests on V1.0, we need such higher voltages.
-
-		pwms = <&pwm_cd 1 12001 0>;	// PWM_D
+		pwms = <&pwm_cd 1 12001 0>;
 		pwm-dutycycle-range = <10 0>;
 		regulator-min-microvolt = <860000>;
 		regulator-max-microvolt = <1140000>;
-
 		pwm-supply = <&p12v>;
-
 		regulator-boot-on;
 		regulator-always-on;
 	};
@@ -233,7 +199,6 @@
 		/* 15 */ "WIFI_UART_CTS PIN44 (GPIOX_19)",
 		/* 16 */ "WIFI PIN34 (GPIOX_20)",
 		/* 17 */ "WIFI_WAKE PIN13 (GPIOX_21)",
-
 		/* 18 */ "Resistor_TopOf_LED (GPIOY_0)",
 		/* 19 */ "GPIOY_1",
 		/* 20 */ "GPIOY_3",
@@ -246,7 +211,6 @@
 		/* 27 */ "GPIOY_12",
 		/* 28 */ "Left_BottomOf_CPU (GPIOY_13)",
 		/* 29 */ "Right_BottomOf_CPU (GPIOY_14)",
-
 		/* 30 */ "GPIODV_9 (PWM_C)",
 		/* 31 */ "GPIODV_24",
 		/* 32 */ "GPIODV_25",
@@ -254,7 +218,6 @@
 		/* 34 */ "GPIODV_27",
 		/* 35 */ "VCC_CPU_PWM (GPIODV_28)",
 		/* 36 */ "GPIODV_29",
-
 		/* 37 */ "HDMI_HPD (GPIOH_0)",
 		/* 38 */ "HDMI_SDA (GPIOH_1)",
 		/* 39 */ "HDMI_SCL (GPIOH_2)",
@@ -265,7 +228,6 @@
 		/* 44 */ "ETH_TXD3 (GPIOH_7)",
 		/* 45 */ "ETH_TXD2 (GPIOH_8)",
 		/* 46 */ "ETH_TX_CLK (GPIOH_9)",
-
 		/* 47 */ "SDCARD_D1 (CARD_0)",
 		/* 48 */ "SDCARD_D0 (CARD_1)",
 		/* 49 */ "SDCARD_CLK (CARD_2)",
@@ -273,7 +235,6 @@
 		/* 51 */ "SDCARD_D3 (CARD_4)",
 		/* 52 */ "SDCARD_D2 (CARD_5)",
 		/* 53 */ "SDCARD_CD (CARD_6)",
-
 		/* 54 */ "EMMC_D0 (BOOT_0)",
 		/* 55 */ "EMMC_D1 (BOOT_1)",
 		/* 56 */ "EMMC_D2 (BOOT_2)",
@@ -293,7 +254,6 @@
 		/* 70 */ "BOOT_16",
 		/* 71 */ "BOOT_17",
 		/* 72 */ "BOOT_18",
-
 		/* 73 */ "ETH_RXD1 (DIF_0_P)",
 		/* 74 */ "ETH_RXD0 (DIF_0_N)",
 		/* 75 */ "ETH_RX_DV (DIF_1_P)",
@@ -322,7 +282,6 @@
 		/* 11 */ "GPIOAO_11",
 		/* 12 */ "GPIOAO_12",
 		/* 13 */ "GPIOAO_13",
-
 		/* 14 */ "GPIO_BSD_EN",
 		/* 15 */ "GPIO_TEST_N";
 };
@@ -330,24 +289,19 @@
 // eMMC
 &sdhc {
 	status = "okay";
-
 	pinctrl-0 = <&sdxc_c_pins>;
 	pinctrl-names = "default";
-
 	non-removable;
 	bus-width = <8>;
 	max-frequency = <200000000>;
 	cap-mmc-highspeed;
 	mmc-hs200-1_8v;
-
 	mmc-pwrseq = <&emmc_pwrseq>;
 	vmmc-supply = <&vcc_3v3>;
-	// vqmmc-supply = <&vcc_3v3>;
 };
 
 &sdio {
 	status = "okay";
-
 	pinctrl-0 = <&sd_b_pins>;
 	pinctrl-names = "default";
 
@@ -356,41 +310,35 @@
 		compatible = "mmc-slot";
 		reg = <1>;
 		status = "okay";
-
 		bus-width = <4>;
 		no-sdio;
 		cap-mmc-highspeed;
 		cap-sd-highspeed;
 		disable-wp;
-
-		cd-gpios = <&gpio CARD_6 GPIO_ACTIVE_LOW>;
-
+		cd-gpios = <&gpio 53 GPIO_ACTIVE_LOW>; // 补充：CARD_6 → 数字索引53
 		vmmc-supply = <&vcc_3v3>;
-		// vqmmc-supply = <&vcc_3v3>;
 	};
 
-	// ========== 新增：SDIO 适配 WiFi 配置 ==========
+	// ========== 修复：SDIO WiFi 配置（简化非标准属性） ==========
 	sdio_wifi: slot@0 {
 		compatible = "mmc-slot";
-		reg = <0>; // 原 port = <0>
+		reg = <0>;
 		status = "okay";
-		pinname = "sdio";
-		ocr_avail = <0x200000>; // 3.3V 电压
-		caps = "MMC_CAP_4_BIT_DATA","MMC_CAP_SDIO_IRQ","MMC_CAP_MMC_HIGHSPEED","MMC_CAP_SD_HIGHSPEED", "MMC_CAP_NONREMOVABLE";
-		f_min = <300000>;
-		f_max = <50000000>;
-		max_req_size = <0x20000>; // 128KB
-		card_type = <3>; // 3: sdio device (WiFi)
+		bus-width = <4>; // 补充：SDIO WiFi 标准4线宽
+		no-mmc; // 禁用MMC模式，仅保留SDIO
+		no-sd;  // 禁用SD模式，仅保留SDIO
+		cap-sdio-irq; // 启用SDIO中断
+		non-removable; // WiFi模块不可移除
+		max-frequency = <50000000>; // 匹配原f_max
+		vmmc-supply = <&vcc_3v3>; // 补充：3.3V供电
 	};
-	// ========== SDIO WiFi 配置结束 ==========
+	// ========== SDIO WiFi 配置修复结束 ==========
 };
 
 &ethmac {
 	status = "okay";
-
 	pinctrl-0 = <&eth_rgmii_pins>;
 	pinctrl-names = "default";
-
 	phy-handle = <&eth_phy>;
 	phy-mode = "rgmii-rxid";
 
@@ -399,16 +347,13 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		// Realtek RTL8211F (0x001cc916)
 		eth_phy: ethernet-phy@0 {
 			reg = <0>;
-
 			reset-assert-us = <10000>;
 			reset-deassert-us = <80000>;
-			reset-gpios = <&gpio GPIOH_4 GPIO_ACTIVE_LOW>;
-
+			reset-gpios = <&gpio 41 GPIO_ACTIVE_LOW>; // 补充：GPIOH_4 → 数字索引41
 			interrupt-parent = <&gpio_intc>;
-			interrupts = <17 IRQ_TYPE_LEVEL_LOW>; // GPIOH 3
+			interrupts = <17 IRQ_TYPE_LEVEL_LOW>;
 		};
 	};
 };
