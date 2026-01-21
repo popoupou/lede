@@ -13,6 +13,7 @@
 		serial0 = &uart_AO;
 		mmc0 = &sd_card_slot;
 		mmc1 = &sdhc;
+		mmc2 = &sdio_wifi;
 	};
 
 	chosen {
@@ -21,7 +22,7 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x40000000 0x40000000>;
+		reg = <0x40000000 0x80000000>;
 	};
 
 	emmc_pwrseq: emmc-pwrseq {
@@ -64,6 +65,48 @@
 		led_status_blue: status-blue {
 			label = "blue:status";
 			gpios = <&gpio_ao GPIOAO_4 GPIO_ACTIVE_HIGH>;
+		};
+	};
+
+	hdmi-connector {
+		compatible = "hdmi-connector";
+		type = "a";
+
+		port {
+			hdmi_connector_in: endpoint {
+				remote-endpoint = <&hdmi_tx_tmds_out>;
+			};
+		};
+	};
+
+	sound {
+		compatible = "amlogic,gx-sound-card";
+
+		assigned-clocks = <&clkc CLKID_MPLL0>,
+				  <&clkc CLKID_MPLL1>;
+		assigned-clock-rates = <294912000>,
+				       <270950400>;
+
+		dai-link-0 {
+			sound-dai = <&aiu AIU_CPU CPU_I2S_FIFO>;
+		};
+
+		dai-link-1 {
+			sound-dai = <&aiu AIU_CPU CPU_I2S_ENCODER>;
+			dai-format = "i2s";
+			mclk-fs = <256>;
+
+			codec-0 {
+				sound-dai = <&aiu AIU_HDMI CTRL_I2S>;
+			};
+		};
+
+		dai-link-2 {
+			sound-dai = <&aiu AIU_HDMI CTRL_OUT>;
+
+			codec-0 {
+				sound-dai = <&hdmi_tx 0>;
+			};
 		};
 	};
 
@@ -179,6 +222,10 @@
 &saradc {
 	status = "okay";
 	vref-supply = <&vcc_1v8>;
+};
+
+&aiu {
+	status = "okay";
 };
 
 &gpio {
@@ -316,14 +363,15 @@
 &sdio {
 	status = "okay";
 
-	pinctrl-0 = <&sd_b_pins>;
-	pinctrl-names = "default";
-
 	// SD card
 	sd_card_slot: slot@1 {
+		status = "okay";
+
+		pinctrl-0 = <&sd_b_pins>;
+		pinctrl-names = "default";
+
 		compatible = "mmc-slot";
 		reg = <1>;
-		status = "okay";
 
 		bus-width = <4>;
 		no-sdio;
@@ -334,7 +382,23 @@
 		cd-gpios = <&gpio CARD_6 GPIO_ACTIVE_LOW>;
 
 		vmmc-supply = <&vcc_3v3>;
-		// vqmmc-supply = <&vcc_3v3>;
+	};
+
+	//wifi
+	sdio_wifi: slot@0 {
+		status = "okay";
+
+		pinctrl-0 = <&sd_a_pins>;
+		pinctrl-names = "default";
+
+		compatible = "mmc-slot";
+		reg = <0>;
+		bus-width = <4>;
+		vmmc-supply = <&vcc_3v3>;
+
+		disable-wp;
+		cap-sdio-irq;
+		non-removable;
 	};
 };
 
@@ -383,6 +447,18 @@
 
 &usb1_phy {
 	status = "okay";
+};
+
+&hdmi_tx {
+	status = "okay";
+	pinctrl-0 = <&hdmi_hpd_pins>, <&hdmi_i2c_pins>;
+	pinctrl-names = "default";
+};
+
+&hdmi_tx_tmds_port {
+	hdmi_tx_tmds_out: endpoint {
+		remote-endpoint = <&hdmi_connector_in>;
+	};
 };
 
 &ir_receiver {
