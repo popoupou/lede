@@ -13,7 +13,6 @@
 		serial0 = &uart_AO;
 		mmc0 = &sd_card_slot;
 		mmc1 = &sdhc;
-		mmc2 = &sdio_wifi;
 	};
 
 	chosen {
@@ -336,23 +335,6 @@
 		cd-gpios = <&gpio CARD_6 GPIO_ACTIVE_LOW>;
 
 		vmmc-supply = <&vcc_3v3>;
-	};
-
-	//wifi
-	sdio_wifi: slot@0 {
-		status = "okay";
-
-		pinctrl-0 = <&sd_a_pins>;
-		pinctrl-names = "default";
-
-		compatible = "mmc-slot";
-		reg = <0>;
-		bus-width = <4>;
-		vmmc-supply = <&vcc_3v3>;
-
-		disable-wp;
-		cap-sdio-irq;
-		non-removable;
 	};
 };
 
