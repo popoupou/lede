@@ -67,6 +67,12 @@ define Device/tplink-16mlzma
   IMAGE_SIZE := 16192k
 endef
 
+define Device/tplink-32mlzma
+  $(Device/tplink-v1)
+  TPLINK_FLASHLAYOUT := 32Mlzma
+  IMAGE_SIZE := 32576k
+endef
+
 define Device/tplink-safeloader
   $(Device/tplink-v1)
   TPLINK_HWREV := 0x0

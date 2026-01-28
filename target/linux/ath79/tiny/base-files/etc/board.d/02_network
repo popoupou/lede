@@ -31,6 +31,7 @@ ath79_setup_interfaces()
 	engenius,ecb350-v1|\
 	pqi,air-pen|\
 	tplink,tl-mr10u|\
+	tplink,tl-mr11u|\
 	tplink,tl-mr3020-v1|\
 	tplink,tl-mr3040-v2|\
 	tplink,tl-wa701nd-v1|\
